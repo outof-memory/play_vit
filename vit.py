@@ -1,5 +1,6 @@
 from torch import nn
 import torch
+import math
 import torch.nn.functional as F
 import numpy as np
 import matplotlib.pyplot as plt
@@ -49,7 +50,7 @@ class AttentionHead(nn.Module):
 
     def forward(self, x):
         q, k, v = self.query(x), self.key(x), self.value(x)
-        attention_scores = torch.matmul(q, k.transpose(-2,-1)) / torch.sqrt(self.attn_head_size) 
+        attention_scores = torch.matmul(q, k.transpose(-2,-1)) / math.sqrt(self.attn_head_size) 
         attention_probs = F.softmax(attention_scores, dim=-1)
         attention_probs = self.dropout(attention_probs)
         attention_output = torch.matmul(attention_probs, v)
