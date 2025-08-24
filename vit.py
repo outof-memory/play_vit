@@ -138,7 +138,7 @@ class ViTForClassfication(nn.Module):
         input_embeddings = self.input_emb(imgs)
         image_embeddings, all_attn_probs = self.encoder(input_embeddings)
         logits = self.fc(image_embeddings[:, 0])
-        return logits, image_embeddings, all_attn_probs
+        return logits, all_attn_probs
 
     def _init_weights(self, module):
         if isinstance(module, (nn.Linear, nn.Conv2d)):
