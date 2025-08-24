@@ -63,7 +63,7 @@ class MultiHeadAttention(nn.Module):
         self.num_heads = num_heads
         assert hidden_size % num_heads == 0, f"hidden_size: {hidden_size} is not divisible by num_heads: {num_heads}"
         self.attn_head_size = hidden_size // num_heads
-        self.attn_heads = nn.ModuleList([AttentionHead(hidden_size, self.attn_head_size, dropout_prob, bias)])
+        self.attn_heads = nn.ModuleList([AttentionHead(hidden_size, self.attn_head_size, dropout_prob, bias) for i in range(num_heads)])
         self.output_proj = nn.Linear(hidden_size, hidden_size, bias=bias)
         self.dropout = nn.Dropout(dropout_prob)
 
