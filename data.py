@@ -14,7 +14,7 @@ def prepare_data(batch_size=4, num_workers=2, train_sample_size=None, test_sampl
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
     trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                            download=False, transform=train_transform)
+                                            download=True, transform=train_transform)
     if train_sample_size is not None:
         # Randomly sample a subset of the training set
         indices = torch.randperm(len(trainset))[:train_sample_size]
@@ -31,7 +31,7 @@ def prepare_data(batch_size=4, num_workers=2, train_sample_size=None, test_sampl
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
     testset = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                        download=False, transform=test_transform)
+                                        download=True, transform=test_transform)
     if test_sample_size is not None:
         # Randomly sample a subset of the test set
         indices = torch.randperm(len(testset))[:test_sample_size]
