@@ -26,9 +26,10 @@ class Trainer:
     The simple trainer.
     """
 
-    def __init__(self, model, optimizer, loss_fn, exp_name, device):
+    def __init__(self, model, optimizer, lr_scheduler, loss_fn, exp_name, device):
         self.model = model.to(device)
         self.optimizer = optimizer
+        self.lr_scheduler = lr_scheduler
         self.loss_fn = loss_fn
         self.exp_name = exp_name
         self.device = device
@@ -41,12 +42,17 @@ class Trainer:
         train_losses, test_losses, accuracies = [], [], []
         # Train the model
         for i in range(epochs):
+            self.iepoch = i
             train_loss = self.train_epoch(trainloader)
             accuracy, test_loss = self.evaluate(testloader)
             train_losses.append(train_loss)
             test_losses.append(test_loss)
             accuracies.append(accuracy)
-            print(f"Epoch: {i+1}, Train loss: {train_loss:.4f}, Test loss: {test_loss:.4f}, Accuracy: {accuracy:.4f}")
+            current_lr = self.lr_scheduler.optimizer.param_groups[0]['lr']
+            print(f"Epoch: {i+1}, Train loss: {train_loss:.4f}, "
+                  f"Test loss: {test_loss:.4f},"
+                  f"Accuracy: {accuracy:.4f},"
+                  f"Lr: {current_lr}")
             if save_model_every_n_epochs > 0 and (i+1) % save_model_every_n_epochs == 0 and i+1 != epochs:
                 print('\tSave checkpoint at epoch', i+1)
                 save_checkpoint(self.exp_name, self.model, i+1)
@@ -71,6 +77,8 @@ class Trainer:
             loss.backward()
             # Update the model's parameters
             self.optimizer.step()
+            self.lr_scheduler.step()
+
             total_loss += loss.item() * len(images)
         return total_loss / len(trainloader.dataset)
 
@@ -137,9 +145,10 @@ def main():
     )
     total_steps = len(trainloader) * epochs
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-2)
-    get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0.1*total_steps, num_training_steps=total_steps)
+    lr_scheduler = get_linear_schedule_with_warmup(
+        optimizer, num_warmup_steps=0.1*total_steps, num_training_steps=total_steps)
     loss_fn = nn.CrossEntropyLoss()
-    trainer = Trainer(model, optimizer, loss_fn, exp_name, device=device)
+    trainer = Trainer(model, optimizer, lr_scheduler, loss_fn, exp_name, device=device)
     trainer.train(trainloader, testloader, epochs, save_model_every_n_epochs=save_model_every_n_epochs)
 
 
