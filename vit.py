@@ -80,6 +80,33 @@ class MultiHeadAttention(nn.Module):
         attn_probs = torch.stack(attn_probs, axis=1)
         return outputs, attn_probs
 
+class FasterMultiHeadAttention(nn.Module):
+    def __init__(self, hidden_size, num_heads, dropout_prob=0.1, bias=True):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.num_heads = num_heads
+        assert hidden_size % num_heads == 0, f"hidden_size: {hidden_size} is not divisible by num_heads: {num_heads}"
+        self.attn_head_size = hidden_size // num_heads
+        self.qkv_proj = nn.Linear(hidden_size, 3*hidden_size)
+        self.attn_dropout = nn.Dropout(dropout_prob)
+
+        self.output_proj = nn.Linear(hidden_size, hidden_size, bias=bias)
+        self.dropout = nn.Dropout(dropout_prob)
+
+    def forward(self, x):
+        qkv = self.qkv_proj(x)
+        q, k, v = torch.chunk(qkv, 3, dim=-1)
+        q = q.reshape(q.shape[0], q.shape[1], self.num_heads, self.attn_head_size).transpose(1, 2)
+        k = k.reshape(k.shape[0], k.shape[1], self.num_heads, self.attn_head_size).transpose(1, 2)
+        v = v.reshape(v.shape[0], v.shape[1], self.num_heads, self.attn_head_size).transpose(1, 2)
+        attn_scores = torch.matmul(q, k.transpose(-2,-1)) / math.sqrt(self.attn_head_size)
+        attn_probs = self.attn_dropout(F.softmax(attn_scores, axis=-1))
+        attn_output = torch.matmul(attn_probs, v)
+        attn_output = attn_output.transpose(1, 2).reshape(x.shape[0], x.shape[1], self.hidden_size)
+        output = self.output_proj(attn_output)
+        output = self.dropout(output)
+        return output, attn_probs
+
 class Block(nn.Module):
     def __init__(self, hidden_size, num_heads, mlp_ratio=2, dropout_prob=0.1, bias=True):
         super().__init__()
