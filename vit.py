@@ -147,14 +147,15 @@ class ViTForClassfication(nn.Module):
                  patch_size=32,
                  dropout_prob=0.1, 
                  bias=True, 
-                 num_classes=1000):
+                 num_classes=1000,
+                 initializer_range=0.02):
         super().__init__()
         self.image_size = image_size
         self.patch_size = patch_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.num_heads = num_heads
-        self.initializer_range = 0.02
+        self.initializer_range = initializer_range
 
         self.input_emb = InputEmbedings(self.image_size, self.patch_size, 3, hidden_size)
         self.encoder = Encoder(hidden_size, num_layers, num_heads, mlp_ratio, dropout_prob, bias)

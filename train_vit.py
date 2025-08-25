@@ -4,29 +4,22 @@ from torch import nn, optim
 from utils import save_experiment, save_checkpoint
 from data import prepare_data
 from vit import ViTForClassfication
+import yaml
+from tqdm import tqdm
+import argparse
+from transformers import get_linear_schedule_with_warmup
 
 
-config = {
-    "patch_size": 4,  # Input image size: 32x32 -> 8x8 patches
-    "hidden_size": 96,
-    "num_hidden_layers": 8,
-    "num_attention_heads": 4,
-    # "intermediate_size": 4 * 48, # 4 * hidden_size
-    "mlp_ratio": 4,
-    "hidden_dropout_prob": 0.0,
-    "attention_probs_dropout_prob": 0.0,
-    "initializer_range": 0.02,
-    "image_size": 32,
-    "num_classes": 10, # num_classes of CIFAR10
-    "num_channels": 3,
-    "qkv_bias": True,
-    "use_faster_attention": True,
-}
+parser = argparse.ArgumentParser()
+parser.add_argument("--config", "-c", type=str, 
+                    default='configs/test1.yaml', required=True)
+args = parser.parse_args()
+
+config = yaml.safe_load(open(args.config))
 # These are not hard constraints, but are used to prevent misconfigurations
 assert config["hidden_size"] % config["num_attention_heads"] == 0
 # assert config['intermediate_size'] == 4 * config['hidden_size']
 assert config['image_size'] % config['patch_size'] == 0
-
 
 class Trainer:
     """
@@ -66,7 +59,7 @@ class Trainer:
         """
         self.model.train()
         total_loss = 0
-        for batch in trainloader:
+        for batch in tqdm(trainloader):
             # Move the batch to the device
             batch = [t.to(self.device) for t in batch]
             images, labels = batch
@@ -110,13 +103,7 @@ class Trainer:
 def parse_args():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--exp-name", type=str, required=True)
-    parser.add_argument("--batch-size", type=int, default=128)
-    parser.add_argument("--epochs", type=int, default=100)
-    parser.add_argument("--lr", type=float, default=1e-2)
-    parser.add_argument("--device", type=str, default='cpu')
-    parser.add_argument("--save-model-every", type=int, default=1)
-
+    parser.add_argument("--config", "-c", type=str, required=True)
     args = parser.parse_args()
     if args.device is None:
         args.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -124,13 +111,15 @@ def parse_args():
 
 
 def main():
-    args = parse_args()
     # Training parameters
-    batch_size = args.batch_size
-    epochs = args.epochs
-    lr = args.lr
-    device = args.device
-    save_model_every_n_epochs = args.save_model_every
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    exp_name = config['exp_name']
+    epochs = config['epochs']
+    batch_size = config['batch_size']
+    lr = config['init_lr']
+    save_model_every_n_epochs = config['save_model_every']
+    # warmup_steps = config['warmup_steps']
+
     # Load the CIFAR10 dataset
     trainloader, testloader, _ = prepare_data(batch_size=batch_size)
     # Create the model, optimizer, loss function and trainer
@@ -143,13 +132,17 @@ def main():
         patch_size=config['patch_size'],
         dropout_prob=config['hidden_dropout_prob'],
         bias=config['qkv_bias'],
-        num_classes=config['num_classes']
+        num_classes=config['num_classes'],
+        initializer_range=config['initializer_range'],
     )
+    total_steps = len(trainloader) * epochs
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-2)
+    get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0.1*total_steps, num_training_steps=total_steps)
     loss_fn = nn.CrossEntropyLoss()
-    trainer = Trainer(model, optimizer, loss_fn, args.exp_name, device=device)
+    trainer = Trainer(model, optimizer, loss_fn, exp_name, device=device)
     trainer.train(trainloader, testloader, epochs, save_model_every_n_epochs=save_model_every_n_epochs)
 
 
 if __name__ == "__main__":
+    # pass
     main()
