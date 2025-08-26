@@ -16,6 +16,6 @@ qkv_bias: true
 
 init_lr: 0.001
 epochs: 100
-batch_size: 1
+batch_size: 256
 save_model_every: 5
 init_ckpt: experiments/vit_tiny/model_final.pt
