@@ -126,7 +126,7 @@ def main():
     batch_size = config['batch_size']
     lr = config['init_lr']
     save_model_every_n_epochs = config['save_model_every']
-    # warmup_steps = config['warmup_steps']
+    init_ckpt = config['init_ckpt']
 
     # Load the CIFAR10 dataset
     trainloader, testloader, _ = prepare_data(batch_size=batch_size)
@@ -143,6 +143,10 @@ def main():
         num_classes=config['num_classes'],
         initializer_range=config['initializer_range'],
     )
+    if init_ckpt is not None:
+        ckpt = torch.load(init_ckpt, map_location=device)
+        model.load_state_dict(ckpt, strict=True)
+        print(f"Loaded checkpoint from {init_ckpt}")
     total_steps = len(trainloader) * epochs
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-2)
     lr_scheduler = get_linear_schedule_with_warmup(
