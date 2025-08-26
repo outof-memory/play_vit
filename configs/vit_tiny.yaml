@@ -1,4 +1,4 @@
-exp_name: vit_tiny
+exp_name: vit_tiny_ft
 
 attention_probs_dropout_prob: 0.0
 hidden_dropout_prob: 0.2
@@ -18,4 +18,4 @@ init_lr: 0.001
 epochs: 100
 batch_size: 1
 save_model_every: 5
-init_ckpt: experiments\vit_tiny\model_final.pt
+init_ckpt: experiments/vit_tiny/model_final.pt
